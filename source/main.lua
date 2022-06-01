@@ -3,6 +3,7 @@ import "CoreLibs/object"
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
+import "CoreLibs/crank"
 
 -- This is used to make calling playdate lib functions less verbose
 local gfx <const> = playdate.graphics
@@ -21,6 +22,8 @@ local playerSprite = nil
 
 -- Placeholder for speed
 local playerSpeed = 4
+local speedModifier = 0
+local speedWithModifier = 0
 
 -- This was in example code, we might still use it.
 local playTimer = nil
@@ -81,26 +84,36 @@ function playdate.update()
 		end
 	-- Main Game Loop, player movement and coin pick up
 	else
+		--will be handling crank stuff up here since the speed values affect everything more or less
+		-- the .0x is just to make the speedramp up less while still being finely tunable
+		-- -2 is minimum modifier 8 is maximum
+		speedModifier += playdate.getCrankTicks(60) * .04
+		if speedModifier > 8 then
+			speedModifier = 8;
+		end
+		if speedModifier < -2 then
+			speedModifier = -2;
+		end
+		speedWithModifier = playerSpeed + speedModifier
+
 		-- This should be abstracted to a handlerPlayerMovement function
 		if playdate.buttonIsPressed(playdate.kButtonUp) then
 			playerSprite:moveBy(0, -playerSpeed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonRight) then
-			playerSprite:moveBy(playerSpeed, 0)
+			playerSprite:moveBy(speedWithModifier, 0)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonDown) then
 			playerSprite:moveBy(0, playerSpeed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonLeft) then
-			playerSprite:moveBy(-playerSpeed, 0)
+			playerSprite:moveBy(-speedWithModifier, 0)
 		end
-		-- Crank handling goes here
 
-		local collisions = nil --coinSprite:overlappingSprites() this is what one type of collision call looks like. -JL
-
-		if #collisions >= 1 then
+		--local collisions = nil --coinSprite:overlappingSprites() this is what one type of collision call looks like. -JL
+		--if #collisions >= 1 then
 			
-		end
+		--end
 	end
 
 	playdate.timer.updateTimers()
@@ -111,4 +124,6 @@ function playdate.update()
 	-- We should abstract UI updates to another function as well
 	gfx.drawText("Time: " .. math.ceil(playTimer.value/1000), 5, 5)
 	gfx.drawText("Score: " .. score, 320, 5)
+	-- this'll be used for fine tuning my shit
+	gfx.drawText("speed: " .. speedWithModifier , 5 , 30)
 end
