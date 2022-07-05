@@ -8,19 +8,11 @@ import "CoreLibs/timer"
 local gfx <const> = playdate.graphics
 local sfx <const> = playdate.sound
 
--- All local variables to access anywhere
--- We might consider taking an object orientated approach to structuring our code
--- i.e Player class with handle button press method, etc
--- I would like to try and write it all in a procedural manner, but it could get messy.
--- Hopefully we can keep the game scope down enough to keep it clean. -JL
-
+-- ##### GLOBALS #####
+-- Lets try using just tables for everything in true Lua fashion
 -- TODO: Make a Car player sprite
-local playerSprite = nil
 
--- TODO: sprite initilization for other objects go below
-
--- Placeholder for speed
-local playerSpeed = 4
+player = {sprite = nil, speed = 4, timer = nil, health = 3}
 
 -- This was in example code, we might still use it.
 local playTimer = nil
@@ -28,6 +20,8 @@ local playTime = 30 * 1000
 
 -- Dont know if we are doing score but its here
 local score = 0
+
+-- #### END GLOBALS ##### 
 
 local function resetTimer()
 	playTimer = playdate.timer.new(playTime, playTime, 0, playdate.easingFunctions.linear)
@@ -39,21 +33,22 @@ local function initialize()
 	math.randomseed(playdate.getSecondsSinceEpoch())
 	-- Loads image of sprite and sets that to Sprite object
 	local playerImage = gfx.image.new("images/player")
-	playerSprite = gfx.sprite.new(playerImage)
+	player.sprite = gfx.sprite.new(playerImage)
 	-- default location
-	playerSprite:moveTo(200, 120)
+	player.sprite:moveTo(200, 120)
 	-- set collider
-	playerSprite:setCollideRect(0, 0, playerSprite:getSize())
+	player.sprite:setCollideRect(0, 0, player.sprite:getSize())
 	-- actually put it into the game
-	playerSprite:add()
+	player.sprite:add()
 
 	-- Background Image init
-	local backgroundImage = gfx.image.new("images/background")
+	local backgroundImage1 = gfx.image.new("images/bg1")
+	local backgroundImage2 = gfx.image.new("images/bg2")
 	-- jl / Look into
 	gfx.sprite.setBackgroundDrawingCallback(
 		function(x, y, width, height)
 			gfx.setClipRect(x, y, width, height)
-			backgroundImage:draw(0, 0)
+			backgroundImage1:draw(0, 0)
 			gfx.clearClipRect()
 		end
 	)
@@ -83,24 +78,18 @@ function playdate.update()
 	else
 		-- This should be abstracted to a handlerPlayerMovement function
 		if playdate.buttonIsPressed(playdate.kButtonUp) then
-			playerSprite:moveBy(0, -playerSpeed)
+			player.sprite:moveBy(0, -player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonRight) then
-			playerSprite:moveBy(playerSpeed, 0)
+			player.sprite:moveBy(player.speed, 0)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonDown) then
-			playerSprite:moveBy(0, playerSpeed)
+			player.sprite:moveBy(0, player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonLeft) then
-			playerSprite:moveBy(-playerSpeed, 0)
+			player.sprite:moveBy(-player.speed, 0)
 		end
 		-- Crank handling goes here
-
-		local collisions = nil --coinSprite:overlappingSprites() this is what one type of collision call looks like. -JL
-
-		if #collisions >= 1 then
-			
-		end
 	end
 
 	playdate.timer.updateTimers()
