@@ -83,6 +83,20 @@ obs = nil
 obsBott = nil
 -- END DEBUG
 
+-- need a way to spawn objects and control their lifecycle
+-- states are spawning, moving, checking for player collision, despawning
+-- support for multiple objects is needed including timing between spawning new objects
+obstaclesOnScreen = {}
+
+function handleObstacles()
+	-- every object spawned get added to obstaclesOnScreen and on despawn is removed
+	-- we need a way to stagger spawns of objects, random amount of time between some min and max
+	-- ensure we arnt chucking to many objects at players by limiting number on screen at once
+	-- loop through each object obstaclesOnScreen and check for player collision, movement and despawn states
+
+
+end
+
 -- This function is called 30 times a second and is where the main game logic takes place
 function playdate.update()
 	-- Time is up!
