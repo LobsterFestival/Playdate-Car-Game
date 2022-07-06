@@ -3,14 +3,18 @@ import "CoreLibs/object"
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
+import "obstacles"
 
+-- 										##### GLOBALS #####
 -- This is used to make calling playdate lib functions less verbose
 local gfx <const> = playdate.graphics
 local sfx <const> = playdate.sound
+local geo <const> = playdate.geometry
 
--- ##### GLOBALS #####
--- Lets try using just tables for everything in true Lua fashion
--- TODO: Make a Car player sprite
+-- consts for screen height and width at 1x display scale
+local SCREENHEIGHT <const> = playdate.display.getHeight()
+local SCREENWIDTH <const> = playdate.display.getWidth()
+
 
 player = {sprite = nil, speed = 4, timer = nil, health = 3}
 
@@ -21,15 +25,13 @@ local playTime = 30 * 1000
 -- Dont know if we are doing score but its here
 local score = 0
 
--- #### END GLOBALS ##### 
+-- 										#### END GLOBALS #####
 
 local function resetTimer()
 	playTimer = playdate.timer.new(playTime, playTime, 0, playdate.easingFunctions.linear)
 end
 
-local tacoBellDong = playdate.sound.sampleplayer.new("sounds/tacoBell.wav")
-
-local function initialize()
+local function initPlayer()
 	math.randomseed(playdate.getSecondsSinceEpoch())
 	-- Loads image of sprite and sets that to Sprite object
 	local playerImage = gfx.image.new("images/player")
@@ -52,17 +54,32 @@ local function initialize()
 			gfx.clearClipRect()
 		end
 	)
-	
 
 	resetTimer()
 end
--- Need to have function that handles background image changing
 
--- Need to have function(s) for spawning objects onto play field
--- Every object should handle its interactions with the player itself
--- Every object should handle its own movement
+-- Initilize and draw to screen all UI/HUD elements, including screen safe zone so player cant drive over the HUD
+local function initHUD()
 
-initialize()
+end
+
+-- Initilize the background, starting decorations, start timer to first object spawn (?) might not be any issue depending on starting speed
+-- This will be used as our reset game function as well
+local function initGameState()
+
+end
+
+-- TODO: Need to have function that handles background image changing
+
+-- Game init (british accent)
+initPlayer()
+initHUD()
+initGameState()
+
+-- DEBUG: for testing spawn one object and handle its lifecycle globaly
+obs = nil
+obsBott = nil
+-- END DEBUG
 
 -- This function is called 30 times a second and is where the main game logic takes place
 function playdate.update()
@@ -93,6 +110,31 @@ function playdate.update()
 	end
 
 	playdate.timer.updateTimers()
+	-- DEBUG: Spawn and despawn objects continuously from bottom and right side spawns
+	if obs == nil then
+		obs = spawnObjectRight()
+	else
+		-- bounds check
+		if(obs.sprite.x < 0) then
+			despawnObstacle(obs)
+			obs = nil
+		else
+			obs.sprite:moveBy(-5,0)
+		end
+	end
+
+	if obsBott == nil then
+		obsBott = spawnObjectBottom()
+	else
+		-- bounds check
+		if obsBott.sprite.y < 0 then
+			despawnObstacle(obsBott)
+			obsBott = nil
+		else
+			obsBott.sprite:moveBy(0,-5)
+		end
+	end
+	-- END DEBUG
 	-- Look into exactly what this call does
 	gfx.sprite.update()
 
