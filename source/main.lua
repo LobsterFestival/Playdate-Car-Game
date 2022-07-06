@@ -29,6 +29,24 @@ local score = 0
 
 -- 										#### END GLOBALS #####
 
+-- TODO: seeded with value to prevent nil check, correct logic
+obstaclesOnScreen = {tumbleweed}
+
+-- Callback function used by obstacle timer to handle spawning and adding obstacles to array
+function rightObjectTimerCallback()
+	local obs = getRandomRightSpawningObject()
+	obstaclesOnScreen[#obstaclesOnScreen+1] = obs
+	-- object is now added to game offscreen
+	spawnObjectRight(obs)
+end
+
+function bottomObjectTimerCallback()
+	local obs = getRandomBottomSpawningObject()
+	obstaclesOnScreen[#obstaclesOnScreen+1] = obs
+	-- object is now added to game offscreen
+	spawnObjectBottom(obs)
+end
+
 local function resetTimer()
 	playTimer = playdate.timer.new(playTime, playTime, 0, playdate.easingFunctions.linear)
 end
@@ -65,10 +83,18 @@ local function initHUD()
 
 end
 
--- Initilize the background, starting decorations, start timer to first object spawn (?) might not be any issue depending on starting speed
+-- Initilize the background, starting decorations, start timer to first object spawn
 -- This will be used as our reset game function as well
 local function initGameState()
+	-- background image init
+	-- decorations init
 
+	-- start timer for spawning objects into gamefield
+	-- TODO: need to make the timing more dynamic, this will spawn at a constant rate, LAME
+	local delayTimeInital = math.random(1500,3000) -- 1.5 - 3 seconds
+	local delayTimeSecondary = math.random(1500,4000) -- 1.5 - 4 seconds
+	playdate.timer.keyRepeatTimerWithDelay(delayTimeInital, delayTimeSecondary, rightObjectTimerCallback())
+	playdate.timer.keyRepeatTimerWithDelay(delayTimeInital, delayTimeSecondary, bottomObjectTimerCallback())
 end
 
 -- TODO: Need to have function that handles background image changing
@@ -83,19 +109,42 @@ obs = nil
 obsBott = nil
 -- END DEBUG
 
--- need a way to spawn objects and control their lifecycle
--- states are spawning, moving, checking for player collision, despawning
--- support for multiple objects is needed including timing between spawning new objects
-obstaclesOnScreen = {}
-
+-- PLACEHOLDER: until collision detection is worked out
+local playerHit = false
+-- TODO: look over this handling when its not 1 am :^)
 function handleObstacles()
 	-- every object spawned get added to obstaclesOnScreen and on despawn is removed
 	-- we need a way to stagger spawns of objects, random amount of time between some min and max
-	-- ensure we arnt chucking to many objects at players by limiting number on screen at once
-	-- loop through each object obstaclesOnScreen and check for player collision, movement and despawn states
+	delayTime = math.random(1500, 5000)	
+	-- handle each objects checking
+	for k, object in pairs(obstaclesOnScreen) do
+		-- DEBUG:
+		print("Object " .. object.name .. " being handled.")
+		print("Object" .. object.name .. " location: " .. object.sprite.x .. "," .. object.sprite.y)
 
-
+		-- END DEBUG
+		-- player collisions
+		if playerHit == true then
+			-- deduct health from player
+			-- despawn object
+		else
+			-- what kind of object are we dealing with
+			if object.location == "right" then
+				object.sprite:moveBy(-player.speed, 0) -- toward player at their speed
+				if object.sprite.x < 0 then
+					despawnObstacle(object)
+				end 
+			else
+				object.sprite:moveBy(-player.speed*0.2, 5) -- sorta drift towards player and up TODO: magic numbers
+				if object.sprite.y < 0 then
+					despawnObstacle(object)
+				end
+			end
+		end
+	end
 end
+
+
 
 -- This function is called 30 times a second and is where the main game logic takes place
 function playdate.update()
@@ -137,32 +186,9 @@ function playdate.update()
 		-- Crank handling goes here
 	end
 
-	playdate.timer.updateTimers()
-	-- DEBUG: Spawn and despawn objects continuously from bottom and right side spawns
-	if obs == nil then
-		obs = spawnObjectRight()
-	else
-		-- bounds check
-		if(obs.sprite.x < 0) then
-			despawnObstacle(obs)
-			obs = nil
-		else
-			obs.sprite:moveBy(-5,0)
-		end
-	end
+	handleObstacles()
 
-	if obsBott == nil then
-		obsBott = spawnObjectBottom()
-	else
-		-- bounds check
-		if obsBott.sprite.y < 0 then
-			despawnObstacle(obsBott)
-			obsBott = nil
-		else
-			obsBott.sprite:moveBy(0,-5)
-		end
-	end
-	-- END DEBUG
+	playdate.timer.updateTimers()
 	-- Look into exactly what this call does
 	gfx.sprite.update()
 
