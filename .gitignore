@@ -2,4 +2,7 @@ builds/*
 closeSim.ps1
 .vscode
 .sentry-native
+ADD_ENV_VARIABLE.cmd
+Build and Run (Simulator).ps1
+
 

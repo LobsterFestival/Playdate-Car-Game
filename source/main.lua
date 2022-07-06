@@ -17,10 +17,8 @@ local geo <const> = playdate.geometry
 local SCREENHEIGHT <const> = playdate.display.getHeight()
 local SCREENWIDTH <const> = playdate.display.getWidth()
 
-
-
-local speedWithModifier = 0
-player = {sprite = nil, speed = 4, timer = nil, health = 3}
+local speedModifier = 0
+player = {sprite = nil, speed = 4, modifiedSpeed = 0, timer = nil, health = 3}
 
 -- This was in example code, we might still use it.
 local playTimer = nil
@@ -107,20 +105,20 @@ function playdate.update()
 		if speedModifier < -2 then
 			speedModifier = -2;
 		end
-		speedWithModifier = playerSpeed + speedModifier
+		player.modifiedSpeed = player.speed + speedModifier
 
 		-- This should be abstracted to a handlerPlayerMovement function
 		if playdate.buttonIsPressed(playdate.kButtonUp) then
 			player.sprite:moveBy(0, -player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonRight) then
-			player.sprite:moveBy(speedWithModifier, 0)
+			player.sprite:moveBy(player.modifiedSpeed, 0)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonDown) then
 			player.sprite:moveBy(0, player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonLeft) then
-			playerSprite:moveBy(-speedWithModifier, 0)
+			player.sprite:moveBy(-player.modifiedSpeed, 0)
 		end
 		-- Crank handling goes here
 	end
@@ -159,5 +157,5 @@ function playdate.update()
 	gfx.drawText("Time: " .. math.ceil(playTimer.value/1000), 5, 5)
 	gfx.drawText("Score: " .. score, 320, 5)
 	-- this'll be used for fine tuning my shit
-	gfx.drawText("speed: " .. speedWithModifier , 5 , 30)
+	gfx.drawText("speed: " .. player.modifiedSpeed , 5 , 30)
 end
