@@ -3,7 +3,9 @@ import "CoreLibs/object"
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
+import "CoreLibs/crank"
 import "obstacles"
+
 
 -- 										##### GLOBALS #####
 -- This is used to make calling playdate lib functions less verbose
@@ -16,6 +18,8 @@ local SCREENHEIGHT <const> = playdate.display.getHeight()
 local SCREENWIDTH <const> = playdate.display.getWidth()
 
 
+
+local speedWithModifier = 0
 player = {sprite = nil, speed = 4, timer = nil, health = 3}
 
 -- This was in example code, we might still use it.
@@ -93,18 +97,30 @@ function playdate.update()
 		end
 	-- Main Game Loop, player movement and coin pick up
 	else
+		--will be handling crank stuff up here since the speed values affect everything more or less
+		-- the .0x is just to make the speedramp up less while still being finely tunable
+		-- -2 is minimum modifier 8 is maximum
+		speedModifier += playdate.getCrankTicks(60) * .04
+		if speedModifier > 8 then
+			speedModifier = 8;
+		end
+		if speedModifier < -2 then
+			speedModifier = -2;
+		end
+		speedWithModifier = playerSpeed + speedModifier
+
 		-- This should be abstracted to a handlerPlayerMovement function
 		if playdate.buttonIsPressed(playdate.kButtonUp) then
 			player.sprite:moveBy(0, -player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonRight) then
-			player.sprite:moveBy(player.speed, 0)
+			player.sprite:moveBy(speedWithModifier, 0)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonDown) then
 			player.sprite:moveBy(0, player.speed)
 		end
 		if playdate.buttonIsPressed(playdate.kButtonLeft) then
-			player.sprite:moveBy(-player.speed, 0)
+			playerSprite:moveBy(-speedWithModifier, 0)
 		end
 		-- Crank handling goes here
 	end
@@ -142,4 +158,6 @@ function playdate.update()
 	-- We should abstract UI updates to another function as well
 	gfx.drawText("Time: " .. math.ceil(playTimer.value/1000), 5, 5)
 	gfx.drawText("Score: " .. score, 320, 5)
+	-- this'll be used for fine tuning my shit
+	gfx.drawText("speed: " .. speedWithModifier , 5 , 30)
 end
