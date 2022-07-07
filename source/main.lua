@@ -6,7 +6,6 @@ import "CoreLibs/timer"
 import "CoreLibs/crank"
 import "obstacles"
 
-
 -- 										##### GLOBALS #####
 -- This is used to make calling playdate lib functions less verbose
 local gfx <const> = playdate.graphics
@@ -29,22 +28,30 @@ local score = 0
 
 -- 										#### END GLOBALS #####
 
--- TODO: seeded with value to prevent nil check, correct logic
-obstaclesOnScreen = {tumbleweed}
+obstaclesOnScreen = {}
 
 -- Callback function used by obstacle timer to handle spawning and adding obstacles to array
 function rightObjectTimerCallback()
-	local obs = getRandomRightSpawningObject()
-	obstaclesOnScreen[#obstaclesOnScreen+1] = obs
 	-- object is now added to game offscreen
-	spawnObjectRight(obs)
+	obs = spawnObjectRight()
+	obs.hash = math.random(6000)
+	-- add to on screen list, make sure its not empty
+	if next(obstaclesOnScreen) == nil then
+		obstaclesOnScreen[obs.hash] = obs
+	else
+		-- TODO: better way of tracking unique objects on screen		
+		obstaclesOnScreen[obs.hash] = obs
+	end	
+	print("Spawned right object "..obs.name..obs.hash.." at "..obs.sprite.x..","..obs.sprite.y)
 end
 
 function bottomObjectTimerCallback()
-	local obs = getRandomBottomSpawningObject()
-	obstaclesOnScreen[#obstaclesOnScreen+1] = obs
 	-- object is now added to game offscreen
-	spawnObjectBottom(obs)
+	obs = spawnObjectBottom()
+	obs.hash = math.random(6000)
+	-- add to on screen list, make sure its not empty
+	obstaclesOnScreen[obs.hash] = obs
+	print("Spawned bottom object "..obs.name..obs.hash.." at "..obs.sprite.x..","..obs.sprite.y)
 end
 
 local function resetTimer()
@@ -74,7 +81,6 @@ local function initPlayer()
 			gfx.clearClipRect()
 		end
 	)
-
 	resetTimer()
 end
 
@@ -90,7 +96,7 @@ local function initGameState()
 	-- decorations init
 
 	-- start timer for spawning objects into gamefield
-	-- TODO: need to make the timing more dynamic, this will spawn at a constant rate, LAME
+	-- TODO: need to make the timing more dynamic, this will spawn at a constant rate, LAME 
 	local delayTimeInital = math.random(1500,3000) -- 1.5 - 3 seconds
 	local delayTimeSecondary = math.random(1500,4000) -- 1.5 - 4 seconds
 	playdate.timer.keyRepeatTimerWithDelay(delayTimeInital, delayTimeSecondary, rightObjectTimerCallback())
@@ -104,10 +110,12 @@ initPlayer()
 initHUD()
 initGameState()
 
--- DEBUG: for testing spawn one object and handle its lifecycle globaly
-obs = nil
-obsBott = nil
--- END DEBUG
+-- function that will remove obstacle.sprite from the drawing stack and other tasks
+-- e.g if the object despawns without being hit by player, increase their score, etc.
+function despawnObstacle(obstacle)
+    print("removing "..obstacle.name..obstacle.hash)
+    obstacle.sprite:remove()
+end
 
 -- PLACEHOLDER: until collision detection is worked out
 local playerHit = false
@@ -119,9 +127,9 @@ function handleObstacles()
 	-- handle each objects checking
 	for k, object in pairs(obstaclesOnScreen) do
 		-- DEBUG:
-		print("Object " .. object.name .. " being handled.")
-		print("Object" .. object.name .. " location: " .. object.sprite.x .. "," .. object.sprite.y)
-
+		print("Key: "..k)
+		print("Object " .. object.name..object.hash.. " being handled.")
+		print("Object" .. object.name..object.hash.. " location: " .. object.sprite.x .. "," .. object.sprite.y)		
 		-- END DEBUG
 		-- player collisions
 		if playerHit == true then
@@ -129,15 +137,21 @@ function handleObstacles()
 			-- despawn object
 		else
 			-- what kind of object are we dealing with
-			if object.location == "right" then
-				object.sprite:moveBy(-player.speed, 0) -- toward player at their speed
+			if object.zone == "right" then
+				print("right object "..object.name..object.hash)
+				object.sprite:moveBy(-5, 0) -- toward player at their speed, TODO: use player speed stuff
 				if object.sprite.x < 0 then
 					despawnObstacle(object)
-				end 
-			else
-				object.sprite:moveBy(-player.speed*0.2, 5) -- sorta drift towards player and up TODO: magic numbers
+					-- remove from list of on screen objects
+					obstaclesOnScreen[k] = nil
+									end
+			end
+			if object.zone == "bottom" then
+				object.sprite:moveBy(0,-5)
 				if object.sprite.y < 0 then
 					despawnObstacle(object)
+					-- remove from list of on screen objects
+					obstaclesOnScreen[k] = nil				
 				end
 			end
 		end
@@ -145,13 +159,14 @@ function handleObstacles()
 end
 
 
-
+print("Screen width: "..SCREENWIDTH.." Screen Height: "..SCREENHEIGHT)
 -- This function is called 30 times a second and is where the main game logic takes place
 function playdate.update()
 	-- Time is up!
 	-- End game handling should be done in another function as well
 	if playTimer.value == 0 then
-		-- Press A, restarts screen 
+		-- Press A, restarts game
+		-- TODO: obvs update for out own reset stuff 
 		if playdate.buttonJustPressed(playdate.kButtonA) then
 			resetTimer()
 			score = 0

@@ -1,5 +1,4 @@
 --                                      ##### GLOBALS #####
-
 -- This is used to make calling playdate lib functions less verbose
 -- Remember local means local to this file, can't use these consts in main.lua
 local gfx <const> = playdate.graphics
@@ -20,63 +19,78 @@ local RSPAWN_LANE3 <const> = 180
 
 local LANES = {RSPAWN_LANE1,RSPAWN_LANE2,RSPAWN_LANE3}
 
+-- Luas way of defining a class structure
+local function class(base)
+    local t = base and setmetatable({}, base) or {}
+    t.__index = t -- look up keys in base class if not found in instance
+    t.__class = t -- Inherited Class
+    t.__base  = base -- Base Class
+  
+    function t.new(...)
+      local o = setmetatable({}, t)
+      if o.__init then
+        if t == ... then -- we call as Class:new()
+            o:__init(select(2, ...))    
+            return o
+        else             -- we call as Class.new()
+            o:__init(...)
+            return o
+        end
+      end
+      return o
+    end  
+    return t
+end
+
+-- Base Object class
+Object = class()
+
+-- Tumbleweed class inherited from Object 
+Obstacle = class(Object)
+
+-- init function
+-- with this we can now do something like
+-- CODE: local Tumbleweed = Obstacle:new("Tumbleweed",bottomObsSprite,"bottom")
+function Obstacle:__init(name,sprite,zone)
+    self.name = name or ""
+    self.sprite = sprite
+    self.currentSpeed = 0
+    self.speedModifier = 0
+    self.zone = zone
+end
+
 -- PLACEHOLDER: update art assets when complete
-phObstacleImage = gfx.image.new("images/coin")
--- NOTE: Same image but have to have different sprites, multiples of the same obstacle will have to have unique sprites
--- associated with them, I'll figure out that handling later
-phObs1Sprite = gfx.sprite.new(phObstacleImage)
-phObs2Sprite = gfx.sprite.new(phObstacleImage)
+bottomObsImage = gfx.image.new("images/bobject_ph")
+bottomObsSprite = gfx.sprite.new(bottomObsImage)
 
--- Each of these tables contains information about each of the different obstacles 
--- Each obstacle will deduct 1 health from the player and despawn the obstacle on hit
--- NOTE: Honestly we might not need to track this info in tables but we can see as development goes on
-tumbleweed = {name="tumbleweed",sprite=nil,currentSpeed=0,speedModifier=0,zone="bottom"}
-pothole = {name="pothole",sprite=nil,currentSpeed=0,speedModifier=0,zone="right"}
--- vertical flip will determine if the cactus image sprite is pointing up or down on the road
-cactus = {name="cactus",sprite=nil,currentSpeed=0,speedModifier=0,verticalFlip=0,zone="right"}
-ramp = {name="ramp",sprite=nil,currentSpeed=0,speedModifier=0,zone="right"}
-roadkill = {name="roadkill",sprite=nil,currentSpeed=0,speedModifier=0,zone="right"}
--- style determines which image sprite to use for different types of cars on the road
-car = {name="car",sprite=nil,currentSpeed=0,speedModifier=0,style=0,zone="right"}
+rightObsImage = gfx.image.new("images/robject_ph")
+rightObsSprite = gfx.sprite.new(rightObsImage)
 
-tumbleweed.sprite = phObs1Sprite
-pothole.sprite = phObs2Sprite
-
--- TODO: add rest of objects to table
-rightSpawningObjects = {pothole}
-bottomSpawningObjects = {tumbleweed}
 -- TODO: sprite initilization for other objects go below (decorations, etc)
 
 --                                           ##### END GLOBALS #####
 
--- function that will remove obstacle.sprite from the drawing stack and other tasks
--- e.g if the object despawns without being hit by player, increase their score, etc.
-function despawnObstacle(obstacle)
-    print("removing obstacle")
-    obstacle.sprite:remove()
-end
+rightSpawningObjects = {{name="pothole",sprite=rightObsSprite,zone="right"}}
+bottomSpawningObjects = {{name="tumbleweed",sprite=bottomObsSprite,zone="bottom"}}
 
-function spawnObjectRight(object)
-    spawnLane = LANES[math.random( #LANES )] -- pick a random lane from our 3 lanes
+-- Spawns a new instance of a random obstacle on the right side 
+function spawnObjectRight()
+    local params = rightSpawningObjects[math.random( #rightSpawningObjects )]
+    local object = Obstacle:new(params.name,params.sprite,params.zone)
+    local spawnLane = LANES[math.random( #LANES )] -- pick a random lane from our 3 lanes
     object.sprite:moveTo(SCREENWIDTH + 30, spawnLane) -- 30 pixels off screen right
     object.sprite:add()
+    print("spawned right object "..object.name)
     return object
 end
 
-function spawnObjectBottom(object)
+-- Spawns a new instance of a random obstacle on the bottom
+function spawnObjectBottom()
+    local params = bottomSpawningObjects[math.random( #bottomSpawningObjects )]
+    local object = Obstacle:new(params.name,params.sprite,params.zone)
     local randX = math.random(BSPAWN_START, BSPAWN_END)
     object.sprite:moveTo(randX, SCREENHEIGHT + 30) -- 30 pixels below screen
     object.sprite:add()
+    print("spawned bottom object "..object.name)
     return object
-end
-
--- get a random object for spawning on right side and return it
-function getRandomRightSpawningObject()
-    return rightSpawningObjects[math.random( #rightSpawningObjects )]
-end
-
--- will be of more use when we add more
--- get random object for spawning on bottom and return it
-function getRandomBottomSpawningObject()
-    return bottomSpawningObjects[math.random( #bottomSpawningObjects )]
 end
