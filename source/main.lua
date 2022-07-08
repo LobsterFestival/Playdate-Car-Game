@@ -67,26 +67,15 @@ function initGameState()
 	local function rightObjectTimerCallback()
 		print("R timer callback fired~!")
 		-- object is now added to game offscreen
-		obs = spawnObjectRight()
-		obs.hash = math.random(6000)
-		-- add to on screen list, make sure its not empty
-		if next(obstaclesOnScreen) == nil then
-			obstaclesOnScreen[obs.hash] = obs
-		else
-			-- TODO: better way of tracking unique objects on screen
-			obstaclesOnScreen[obs.hash] = obs
-		end
-		print("Spawned right object " .. obs.name .. obs.hash .. " at " .. obs.sprite.x .. "," .. obs.sprite.y)
+		local obs = spawnObjectRight()
+		print("Spawned right object " .. obs.name .. " at " .. obs.x .. "," .. obs.y)
 	end
 
 	local function bottomObjectTimerCallback()
 		print("B timer callback fired~!")
 		-- object is now added to game offscreen
-		obs = spawnObjectBottom()
-		obs.hash = math.random(6000)
-		-- add to on screen list, make sure its not empty
-		obstaclesOnScreen[obs.hash] = obs
-		print("Spawned bottom object " .. obs.name .. obs.hash .. " at " .. obs.sprite.x .. "," .. obs.sprite.y)
+		local obs = spawnObjectBottom()
+		print("Spawned bottom object " .. obs.name.. " at " .. obs.x .. "," .. obs.y)
 	end
 
 	local delayTimeInital = math.random(800, 1100) -- 1.5 - 3 seconds
@@ -102,54 +91,6 @@ end
 initPlayer()
 initHUD()
 initGameState()
-
--- function that will remove obstacle.sprite from the drawing stack and other tasks
--- e.g if the object despawns without being hit by player, increase their score, etc.
-function despawnObstacle(obstacle)
-	print("removing " .. obstacle.name .. obstacle.hash)
-	obstacle.sprite:remove()
-end
-
--- PLACEHOLDER: until collision detection is worked out
-local playerHit = false
--- TODO: look over this handling when its not 1 am :^)
-function handleObstacles()
-	-- every object spawned get added to obstaclesOnScreen and on despawn is removed
-	-- we need a way to stagger spawns of objects, random amount of time between some min and max
-	delayTime = math.random(1500, 5000)
-	-- handle each objects checking
-	print("Starting object handling...")
-	for k, object in pairs(obstaclesOnScreen) do
-		-- DEBUG:
-		print("Object " .. object.name .. object.hash .. " location: " .. object.sprite.x .. "," .. object.sprite.y)
-
-		-- END DEBUG
-		-- player collisions
-		if playerHit == true then
-			-- deduct health from player
-			-- despawn object
-		else
-			-- what kind of object are we dealing with
-			if object.zone == "right" then
-				object.sprite:moveBy(-5, 0) -- toward player at their speed, TODO: use player speed stuff
-				if object.sprite.x < 0 then
-					despawnObstacle(object)
-					-- remove from list of on screen objects
-					obstaclesOnScreen[k] = nil
-				end
-			end
-			if object.zone == "bottom" then
-				object.sprite:moveBy(0, -5)
-				if object.sprite.y < 0 then
-					despawnObstacle(object)
-					-- remove from list of on screen objects
-					obstaclesOnScreen[k] = nil
-				end
-			end
-		end
-	end
-	print("End of Object handling\n")
-end
 
 -- This function is called 30 times a second and is where the main game logic takes place
 function playdate.update()
@@ -192,7 +133,6 @@ function playdate.update()
 		-- Crank handling goes here
 	end
 
-	handleObstacles()
 
 	gfx.sprite.update()
 	playdate.timer.updateTimers()
