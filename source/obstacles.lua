@@ -19,8 +19,20 @@ local RSPAWN_LANE3 <const> = 180
 
 local LANES = {RSPAWN_LANE1,RSPAWN_LANE2,RSPAWN_LANE3}
 
+-- PLACEHOLDER: Fucking playdate doesn't tell you if it failed to load an image, the function
+-- will simply return nil, and sprite doesn't complain on loading nil objects...
+-- register sprites through this function so if you messed up the path, YOU'LL KNOW!
+function loadImageToSpriteHelper(path)
+    image = gfx.image.new(path)
+    if image == nil then
+        print("#### Failed to load image at "..path.." ####")
+        return nil
+    end
+    return image
+end
+
 -- Luas way of defining a class structure
-local function class(base)
+local function customClass(base)
     local t = base and setmetatable({}, base) or {}
     t.__index = t -- look up keys in base class if not found in instance
     t.__class = t -- Inherited Class
@@ -43,10 +55,10 @@ local function class(base)
 end
 
 -- Base Object class
-Object = class()
+Object = customClass()
 
 -- Tumbleweed class inherited from Object 
-Obstacle = class(Object)
+Obstacle = customClass(Object)
 
 -- init function
 -- with this we can now do something like
@@ -60,11 +72,27 @@ function Obstacle:__init(name,sprite,zone)
 end
 
 -- PLACEHOLDER: update art assets when complete
-bottomObsImage = gfx.image.new("images/bobject_ph")
+class('ObsSprite').extends(playdate.graphics.sprite)
+
+function ObsSprite:update()
+    print("ObsSprite updating...")
+end
+
+function ObsSprite:update()
+    print("I'm updating!!")
+end
+
+
+bottomObsImage = loadImageToSpriteHelper("images/bobject_ph")
 bottomObsSprite = gfx.sprite.new(bottomObsImage)
 
-rightObsImage = gfx.image.new("images/robject_ph")
+rightObsImage = loadImageToSpriteHelper("images/robject_ph")
 rightObsSprite = gfx.sprite.new(rightObsImage)
+
+
+testSprite = ObsSprite()
+testSprite:setImage(rightObsImage)
+testSprite:add()
 
 -- TODO: sprite initilization for other objects go below (decorations, etc)
 
