@@ -18,7 +18,8 @@ local RSPAWN_LANE2 <const> = 120
 local RSPAWN_LANE3 <const> = 180
 
 local LANES = {RSPAWN_LANE1,RSPAWN_LANE2,RSPAWN_LANE3}
-
+local PLAYER_SPRITE_GROUP = 1
+local OBSTACLE_SPRITE_GROUP = 2
 -- PLACEHOLDER: Fucking playdate doesn't tell you if it failed to load an image, the function
 -- will simply return nil, and sprite doesn't complain on loading nil objects...
 -- register sprites through this function so if you messed up the path, YOU'LL KNOW!
@@ -31,49 +32,54 @@ function loadImageToSpriteHelper(path)
     return image
 end
 
--- Luas way of defining a class structure
-local function customClass(base)
-    local t = base and setmetatable({}, base) or {}
-    t.__index = t -- look up keys in base class if not found in instance
-    t.__class = t -- Inherited Class
-    t.__base  = base -- Base Class
+-- NOTE: keeping this around in case we need it
+-- one way of defining a class structure
+-- local function customClass(base)
+--     local t = base and setmetatable({}, base) or {}
+--     t.__index = t -- look up keys in base class if not found in instance
+--     t.__class = t -- Inherited Class
+--     t.__base  = base -- Base Class
 
-    function t.new(...)
-      local o = setmetatable({}, t)
-      if o.__init then
-        if t == ... then -- we call as Class:new()
-            o:__init(select(2, ...))
-            return o
-        else             -- we call as Class.new()
-            o:__init(...)
-            return o
-        end
-      end
-      return o
-    end
-    return t
-end
+--     function t.new(...)
+--       local o = setmetatable({}, t)
+--       if o.__init then
+--         if t == ... then -- we call as Class:new()
+--             o:__init(select(2, ...))
+--             return o
+--         else             -- we call as Class.new()
+--             o:__init(...)
+--             return o
+--         end
+--       end
+--       return o
+--     end
+--     return t
+-- end
 
--- Base Object class
-Object = customClass()
+-- -- Base Object class
+-- Object = customClass()
 
--- Tumbleweed class inherited from Object 
-Obstacle = customClass(Object)
+-- -- Subclass inherited from Object 
+-- SubClass = customClass(Object)
+
 
 -- Subclass off of playdates sprite class so we can override update()
 -- then when playdat.graphics.sprite.update (notice the . not :) all sprites
 -- will call :update(), we can then impliment our own logic in here to run every frame
 class('ObsSprite').extends(playdate.graphics.sprite)
 
--- PLACEHOLDER: until collision detection is worked out
-local playerHit = false
-
 function ObsSprite:update()
-    print("I'm updating!!")
-    print("My speed is: "..self.currentSpeed.." My zone "..self.zone)
+    local playerHit = false
+    local collisions = self:overlappingSprites()
+    if #collisions > 0 then
+        playerHit = true
+    end
     if playerHit == true then
         -- deduct health from player
+        print("Player loses 1 health :(")
+        player.health -= 1
         -- despawn object
+        self:remove()
     else
         -- what kind of object are we dealing with
         if self.zone == "right" then
@@ -96,9 +102,16 @@ end
 -- Factory for Obstacle which is a subclass of sprite with 
 -- parameters unique to this subclass
 -- Takes a table from rightSpawningObjects or bottomSpawningObjects table containing obstacle information
+-- Obstacles are part of sprite group 2, player is sprite group 1 
 function createObstacle(obsInfo)
     local obs = ObsSprite()
+    obs:setGroups(OBSTACLE_SPRITE_GROUP)
+    obs:setCollidesWithGroups(PLAYER_SPRITE_GROUP)
     obs:setImage(loadImageToSpriteHelper(obsInfo.image))
+    -- set collision rect to same size as sprite itself (determined by image size)
+    obs:setCollideRect(0,0,obs:getSize())
+    -- collision type that will stop movement on hit (?)
+    obs.collisionResponse = playdate.graphics.sprite.kCollisionTypeFreeze
     obs.name = obsInfo.name
     obs.currentSpeed = 0
     obs.speedModifier = 0
@@ -106,18 +119,11 @@ function createObstacle(obsInfo)
     return obs
 end
 
-
--- PLACEHOLDER: update art assets when complete
-bottomObsImage = loadImageToSpriteHelper("images/bobject_ph")
-bottomObsSprite = gfx.sprite.new(bottomObsImage)
-
-rightObsImage = loadImageToSpriteHelper("images/robject_ph")
-rightObsSprite = gfx.sprite.new(rightObsImage)
-
 -- TODO: sprite initilization for other objects go below (decorations, etc)
+-- decorations can use base gfx.sprite class
 
 --                                           ##### END GLOBALS #####
-
+-- PLACEHOLDER: update art assets when complete
 rightSpawningObjects = {{name="pothole",image="images/bobject_ph",zone="right"}}
 bottomSpawningObjects = {{name="tumbleweed",image="images/robject_ph",zone="bottom"}}
 
