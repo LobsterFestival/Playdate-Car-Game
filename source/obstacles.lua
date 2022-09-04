@@ -1,5 +1,4 @@
 --                                      ##### GLOBALS #####
-
 -- This is used to make calling playdate lib functions less verbose
 -- Remember local means local to this file, can't use these consts in main.lua
 local gfx <const> = playdate.graphics
@@ -19,52 +18,139 @@ local RSPAWN_LANE2 <const> = 120
 local RSPAWN_LANE3 <const> = 180
 
 local LANES = {RSPAWN_LANE1,RSPAWN_LANE2,RSPAWN_LANE3}
+local PLAYER_SPRITE_GROUP = 1
+local OBSTACLE_SPRITE_GROUP = 2
+-- PLACEHOLDER: Fucking playdate doesn't tell you if it failed to load an image, the function
+-- will simply return nil, and sprite doesn't complain on loading nil objects...
+-- register sprites through this function so if you messed up the path, YOU'LL KNOW!
+function loadImageToSpriteHelper(path)
+    image = gfx.image.new(path)
+    if image == nil then
+        print("#### Failed to load image at "..path.." ####")
+        return nil
+    end
+    return image
+end
 
--- PLACEHOLDER: update art assets when complete
-phObstacleImage = gfx.image.new("images/coin")
--- NOTE: Same image but have to have different sprites, multiples of the same obstacle will have to have unique sprites
--- associated with them, I'll figure out that handling later
-phObs1Sprite = gfx.sprite.new(phObstacleImage)
-phObs2Sprite = gfx.sprite.new(phObstacleImage)
+-- NOTE: keeping this around in case we need it
+-- one way of defining a class structure
+-- local function customClass(base)
+--     local t = base and setmetatable({}, base) or {}
+--     t.__index = t -- look up keys in base class if not found in instance
+--     t.__class = t -- Inherited Class
+--     t.__base  = base -- Base Class
 
--- Each of these tables contains information about each of the different obstacles 
--- Each obstacle will deduct 1 health from the player and despawn the obstacle on hit
--- NOTE: Honestly we might not need to track this info in tables but we can see as development goes on
-tumbleweed = {name="tumbleweed",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil}
-pothole = {name="pothole",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil}
--- vertical flip will determine if the cactus image sprite is pointing up or down on the road
-cactus = {name="cactus",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil,verticalFlip=0}
-ramp = {name="ramp",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil}
-roadkill = {name="roadkill",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil}
--- style determines which image sprite to use for different types of cars on the road
-car = {name="car",sprite=nil,currentSpeed=0,speedModifier=0,spawnLocation=nil,style=0}
+--     function t.new(...)
+--       local o = setmetatable({}, t)
+--       if o.__init then
+--         if t == ... then -- we call as Class:new()
+--             o:__init(select(2, ...))
+--             return o
+--         else             -- we call as Class.new()
+--             o:__init(...)
+--             return o
+--         end
+--       end
+--       return o
+--     end
+--     return t
+-- end
 
-tumbleweed.sprite = phObs1Sprite
-pothole.sprite = phObs2Sprite
+-- -- Base Object class
+-- Object = customClass()
+
+-- -- Subclass inherited from Object 
+-- SubClass = customClass(Object)
+
+
+-- Subclass off of playdates sprite class so we can override update()
+-- then when playdat.graphics.sprite.update (notice the . not :) all sprites
+-- will call :update(), we can then impliment our own logic in here to run every frame
+class('ObsSprite').extends(playdate.graphics.sprite)
+
+function ObsSprite:update()
+    local playerHit = false
+    local collisions = self:overlappingSprites()
+    if #collisions > 0 then
+        playerHit = true
+    end
+    if playerHit == true then
+        -- deduct health from player
+        print("Player loses 1 health :(")
+        player.health -= 1
+        -- despawn object
+        self:remove()
+    else
+        -- what kind of object are we dealing with
+        if self.zone == "right" then
+            self:moveBy(-5, 0) -- toward player at their speed, TODO: use player speed stuff
+            if self.x < 0 then
+                print(self.name.." says goodbye~!")
+                self:remove()
+            end
+        end
+        if self.zone == "bottom" then
+            self:moveBy(0, -5)
+            if self.y < 0 then
+                print(self.name.." says goodbye~!")
+                self:remove()
+            end
+        end
+    end
+end
+
+-- Factory for Obstacle which is a subclass of sprite with parameters unique to this subclass
+-- Takes a table from rightSpawningObjects or bottomSpawningObjects table containing obstacle information
+-- Obstacles are part of sprite group 2, player is sprite group 1 
+function createObstacle(obsInfo)
+    local obs = ObsSprite()
+    obs:setGroups(OBSTACLE_SPRITE_GROUP)
+    obs:setCollidesWithGroups(PLAYER_SPRITE_GROUP)
+    obs:setImage(loadImageToSpriteHelper(obsInfo.image))
+    -- set collision rect to same size as sprite itself (determined by image size)
+    obs:setCollideRect(0,0,obs:getSize())
+    -- collision type that will stop movement on hit (?)
+    obs.collisionResponse = playdate.graphics.sprite.kCollisionTypeFreeze
+    obs.name = obsInfo.name
+    obs.currentSpeed = 0
+    obs.speedModifier = 0
+    obs.zone = obsInfo.zone
+    return obs
+end
 
 -- TODO: sprite initilization for other objects go below (decorations, etc)
+-- decorations can use base gfx.sprite class
 
 --                                           ##### END GLOBALS #####
+-- PLACEHOLDER: update art assets when complete
+rightSpawningObjects = {{name="pothole",image="images/bobject_ph",zone="right"}}
+bottomSpawningObjects = {{name="tumbleweed",image="images/Tumbleweed_001",zone="bottom"}}
+lexiSprites = {{name="cactus-up",image="images/Cactus-Up_001",zone="right"},
+               {name="cactus-down",image="images/Cactus-Down_001",zone="right"},
+               {name="pothole",image="images/Pothole_001",zone="right"},
+               {name="ramp",image="images/Ramp_001",zone="right"},
+               {name="roadkill",image="images/Roadkill_001",zone="right"}}
 
--- function that will remove obstacle.sprite from the drawing stack and other tasks
--- e.g if the object despawns without being hit by player, increase their score, etc.
-function despawnObstacle(obstacle)
-    print("removing obstacle")
-    obstacle.sprite:remove()
-end
-
+-- Spawns a new instance of a random obstacle on the right side 
 function spawnObjectRight()
-    spawnLane = LANES[math.random( #LANES )] -- pick a random lane from our 3 lanes
-    pothole.sprite:moveTo(SCREENWIDTH + 30, spawnLane) -- 30 pixels off screen right
-    pothole.sprite:add()
-    return pothole
+    math.randomseed(playdate.getSecondsSinceEpoch())
+    local params = lexiSprites[math.random( #lexiSprites )]
+    local object = createObstacle(params)
+    local spawnLane = LANES[math.random( #LANES )] -- pick a random lane from our 3 lanes
+    object:moveTo(SCREENWIDTH + 30, spawnLane) -- 30 pixels off screen right
+    object:add()
+    print("spawned right object "..object.name)
+    return object
 end
 
+-- Spawns a new instance of a random obstacle on the bottom
 function spawnObjectBottom()
+    math.randomseed(playdate.getSecondsSinceEpoch())
+    local params = bottomSpawningObjects[math.random( #bottomSpawningObjects )]
+    local object = createObstacle(params)
     local randX = math.random(BSPAWN_START, BSPAWN_END)
-    tumbleweed.sprite:moveTo(randX, SCREENHEIGHT + 30) -- 30 pixels below screen
-    tumbleweed.sprite:add()
-    return tumbleweed
+    object:moveTo(randX, SCREENHEIGHT + 30) -- 30 pixels below screen
+    object:add()
+    print("spawned bottom object "..object.name)
+    return object
 end
-
--- 
