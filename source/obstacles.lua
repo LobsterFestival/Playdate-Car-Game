@@ -99,8 +99,7 @@ function ObsSprite:update()
     end
 end
 
--- Factory for Obstacle which is a subclass of sprite with 
--- parameters unique to this subclass
+-- Factory for Obstacle which is a subclass of sprite with parameters unique to this subclass
 -- Takes a table from rightSpawningObjects or bottomSpawningObjects table containing obstacle information
 -- Obstacles are part of sprite group 2, player is sprite group 1 
 function createObstacle(obsInfo)
@@ -125,11 +124,17 @@ end
 --                                           ##### END GLOBALS #####
 -- PLACEHOLDER: update art assets when complete
 rightSpawningObjects = {{name="pothole",image="images/bobject_ph",zone="right"}}
-bottomSpawningObjects = {{name="tumbleweed",image="images/robject_ph",zone="bottom"}}
+bottomSpawningObjects = {{name="tumbleweed",image="images/Tumbleweed_001",zone="bottom"}}
+lexiSprites = {{name="cactus-up",image="images/Cactus-Up_001",zone="right"},
+               {name="cactus-down",image="images/Cactus-Down_001",zone="right"},
+               {name="pothole",image="images/Pothole_001",zone="right"},
+               {name="ramp",image="images/Ramp_001",zone="right"},
+               {name="roadkill",image="images/Roadkill_001",zone="right"}}
 
 -- Spawns a new instance of a random obstacle on the right side 
 function spawnObjectRight()
-    local params = rightSpawningObjects[math.random( #rightSpawningObjects )]
+    math.randomseed(playdate.getSecondsSinceEpoch())
+    local params = lexiSprites[math.random( #lexiSprites )]
     local object = createObstacle(params)
     local spawnLane = LANES[math.random( #LANES )] -- pick a random lane from our 3 lanes
     object:moveTo(SCREENWIDTH + 30, spawnLane) -- 30 pixels off screen right
@@ -140,6 +145,7 @@ end
 
 -- Spawns a new instance of a random obstacle on the bottom
 function spawnObjectBottom()
+    math.randomseed(playdate.getSecondsSinceEpoch())
     local params = bottomSpawningObjects[math.random( #bottomSpawningObjects )]
     local object = createObstacle(params)
     local randX = math.random(BSPAWN_START, BSPAWN_END)
